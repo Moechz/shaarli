@@ -1,0 +1,104 @@
+{
+  "app_id": "shaarlidocker",
+  "title": "Shaarli",
+  "image": "shaarli/shaarli:v0.16.10",
+  "repo_name": "shaarli",
+  "mode": "wrapper",
+  "container_port": 8080,
+  "category": [
+    "Utilities"
+  ],
+  "volumes": [
+    {
+      "host": "/Volume1/DockerAppData/shaarlidocker/data",
+      "container": "/var/www/data"
+    }
+  ],
+  "env": {
+    "TZ": "Asia/Shanghai"
+  },
+  "auth": "shaarli",
+  "upstream_url": "https://github.com/shaarli/Shaarli",
+  "upstream_license": "Zlib",
+  "descript": "Shaarli is a personal bookmarking service: save links with tags and descriptions, search your archive, browse by tag or date, import/export from other bookmark managers and publish a public or private feed. It runs on flat files in the application data folder - no database server needed.",
+  "release_note": "1. First release: Shaarli 0.16.10 from Docker Hub as a non-root container. Self-hosted bookmarks with tags, search and feeds; data in the application data folder.",
+  "important": "Requires DockerEngine (installed automatically if missing). The first visit asks you to set the admin login, timezone and language; bookmarks and configuration live in DockerAppData/shaarlidocker/data. Plain HTTP; use a TLS reverse proxy before exposing it to the internet.",
+  "probe": {
+    "user_in_image": "(root)",
+    "entrypoint": [
+      "/usr/bin/s6-svscan",
+      "/etc/services.d"
+    ],
+    "cmd": null,
+    "exposed_ports": [
+      80
+    ],
+    "declared_volumes": [
+      "/var/www/shaarli/cache",
+      "/var/www/shaarli/data"
+    ],
+    "image_healthcheck": [],
+    "digest": "shaarli/shaarli@sha256:48a1a8962c58c74c5c36d4927a7c2dcb5bf191a93b83dc480d9827f383ada903",
+    "architecture": "x86_64",
+    "platforms": [
+      "x86_64",
+      "aarch64"
+    ],
+    "http_client_in_image": "wget",
+    "trial_run": {
+      "ok": false,
+      "http_code": "",
+      "state": "exited",
+      "paths": [],
+      "host_port": 18000,
+      "log_tail": "s6-svscan: fatal: unable to open .s6-svscan/lock: Permission denied",
+      "files_in_mounts": ""
+    },
+    "docker_hub": {},
+    "github": {}
+  },
+  "healthcheck": [
+    "CMD-SHELL",
+    "grep -q ':1F90' /proc/net/tcp6 || grep -q ':1F90' /proc/net/tcp"
+  ],
+  "entrypoint_file": "src/entrypoint.sh",
+  "platform": "x86_64",
+  "user": "1000:1000",
+  "publisher": "Moechz",
+  "compose_project": "shaarlidocker",
+  "github_repo": "shaarli",
+  "upstream_version": "0.16.10",
+  "release_tag_prefix": "v",
+  "version": "0.16.10-1",
+  "help": "https://github.com/Moechz/shaarli/issues",
+  "official": "https://github.com/shaarli/Shaarli",
+  "license": "Zlib",
+  "docker_socket": false,
+  "group_add": [],
+  "host_port": 8176,
+  "healthcheck_start_period": "45s",
+  "wrapper_note": "the image runs Apache on port 80, which uid 1000 cannot bind, and its PHP CLI is\nnamed php84. This wrapper runs the built-in PHP web server on port 8080 and keeps\nthe data folder on the mounted volume.",
+  "wrapper_note_readme": "- **Entrypoint wrapper**: serves the app with `php84 -S 0.0.0.0:8080` (Apache binds 80, unusable as uid 1000) and keeps the data folder on the volume.",
+  "translations": {
+    "zh-cn": {
+      "descript": "Shaarli 是自建书签服务：保存带标签和描述的链接、搜索归档、按标签或日期浏览，支持从其它书签工具导入/导出，并能发布公开或私有 feed。它用应用数据目录里的平面文件存储，不需要数据库服务。",
+      "important": "需要 DockerEngine（缺失时应用中心会自动安装）。首次访问会让你设置管理员账号、时区与语言；书签与配置都保存在 DockerAppData/shaarlidocker/data。界面为纯 HTTP，暴露到公网前请配置带 TLS 的反向代理。",
+      "release_note": "1. 首个版本：基于 Docker Hub 的 Shaarli 0.16.10，以非 root 容器运行。自建书签，支持标签、搜索与 feed；数据保存在应用数据目录。"
+    },
+    "zh-hk": {
+      "descript": "Shaarli 是自建書籤服務：儲存帶標籤和描述的連結、搜尋歸檔、按標籤或日期瀏覽，支援從其它書籤工具匯入/匯出，並能發佈公開或私有 feed。它用應用資料目錄裡的平面檔案儲存，不需要資料庫服務。",
+      "important": "需要 DockerEngine（缺少時應用中心會自動安裝）。首次存取會讓你設定管理員帳號、時區與語言；書籤與設定都保存在 DockerAppData/shaarlidocker/data。介面為純 HTTP，公開到互聯網前請配置帶 TLS 的反向代理。",
+      "release_note": "1. 首個版本：基於 Docker Hub 的 Shaarli 0.16.10，以非 root 容器運行。自建書籤，支援標籤、搜尋與 feed；資料保存在應用資料目錄。"
+    }
+  },
+  "data_notes": "`/var/www/data` (mounted from `DockerAppData/shaarlidocker/data`) holds `config.json`, the datastore and the thumbnails cache.",
+  "design_notes": [
+    "**PHP built-in server.** Apache binds port 80, unusable as uid 1000; the wrapper uses the `php84` binary with `-S` on 8080.",
+    "**No database.** Bookmarks live in a datastore file in the data folder."
+  ],
+  "limitations": [
+    "- The built-in PHP server is single-threaded; fine for personal use.",
+    "- Thumbnail fetching may need outbound network access.",
+    "- The UI is plain HTTP; use a TLS reverse proxy before exposing it to the internet."
+  ]
+}
