@@ -1,7 +1,7 @@
 {
   "app_id": "shaarlidocker",
   "title": "Shaarli",
-  "image": "shaarli/shaarli:v0.16.10",
+  "image": "shaarli/shaarli:v0.16.11",
   "repo_name": "shaarli",
   "mode": "wrapper",
   "container_port": 8080,
@@ -11,7 +11,19 @@
   "volumes": [
     {
       "host": "/Volume1/DockerAppData/shaarlidocker/data",
-      "container": "/var/www/data"
+      "container": "/var/www/shaarli/data"
+    },
+    {
+      "host": "/Volume1/DockerAppData/shaarlidocker/cache",
+      "container": "/var/www/shaarli/cache"
+    },
+    {
+      "host": "/Volume1/DockerAppData/shaarlidocker/pagecache",
+      "container": "/var/www/shaarli/pagecache"
+    },
+    {
+      "host": "/Volume1/DockerAppData/shaarlidocker/tmp",
+      "container": "/var/www/shaarli/tmp"
     }
   ],
   "env": {
@@ -20,46 +32,12 @@
   "auth": "shaarli",
   "upstream_url": "https://github.com/shaarli/Shaarli",
   "upstream_license": "Zlib",
-  "descript": "Shaarli is a personal bookmarking service: save links with tags and descriptions, search your archive, browse by tag or date, import/export from other bookmark managers and publish a public or private feed. It runs on flat files in the application data folder - no database server needed.",
-  "release_note": "1. First release: Shaarli 0.16.10 from Docker Hub as a non-root container. Self-hosted bookmarks with tags, search and feeds; data in the application data folder.",
-  "important": "Requires DockerEngine (installed automatically if missing). The first visit asks you to set the admin login, timezone and language; bookmarks and configuration live in DockerAppData/shaarlidocker/data. Plain HTTP; use a TLS reverse proxy before exposing it to the internet.",
-  "probe": {
-    "user_in_image": "(root)",
-    "entrypoint": [
-      "/usr/bin/s6-svscan",
-      "/etc/services.d"
-    ],
-    "cmd": null,
-    "exposed_ports": [
-      80
-    ],
-    "declared_volumes": [
-      "/var/www/shaarli/cache",
-      "/var/www/shaarli/data"
-    ],
-    "image_healthcheck": [],
-    "digest": "shaarli/shaarli@sha256:48a1a8962c58c74c5c36d4927a7c2dcb5bf191a93b83dc480d9827f383ada903",
-    "architecture": "x86_64",
-    "platforms": [
-      "x86_64",
-      "aarch64"
-    ],
-    "http_client_in_image": "wget",
-    "trial_run": {
-      "ok": false,
-      "http_code": "",
-      "state": "exited",
-      "paths": [],
-      "host_port": 18000,
-      "log_tail": "s6-svscan: fatal: unable to open .s6-svscan/lock: Permission denied",
-      "files_in_mounts": ""
-    },
-    "docker_hub": {},
-    "github": {}
-  },
+  "descript": "Shaarli is a single-user, self-hosted bookmark manager: save links with a title, description and tags, mark them public or private, search them, browse by tag, date, daily/weekly page or picture wall, and publish RSS/ATOM feeds of public links. It can fetch the title, description and an optional thumbnail from the page you save, supports plugins, and imports/exports Netscape bookmarks. Data lives in flat files in the application data folder - no database server.",
+  "release_note": "0.16.11-1: remediated the listing review. Upgraded the upstream image to 0.16.11, which fixes the LDAP empty-password issue (GHSA-xqxc-g4w2-w7vv), CVE-2026-118773 in a bundled npm dependency and refreshes the Alpine base. Fixed the container: the data folder was mounted at a path Shaarli never writes to, and the cache/pagecache/tmp folders were not writable at all, so bookmarks and settings were lost on restart and the web UI could not finish installation. All four now point at the paths Shaarli uses. Added a router so /install, /login, /admin and /shaare/... work with the built-in PHP server. Added a privacy policy and third-party API disclosure, rewrote the descriptions, and completed the README, changelog and licence notice.",
+  "important": "Requires DockerEngine. Open http://<NAS-IP>:8176 to create the admin account on first visit. Bookmarks, settings and thumbnails live in /Volume1/DockerAppData/shaarlidocker/ and survive restarts and updates. Runs as uid 1000. Saving a link may fetch that page and its images. The admin UI checks GitHub for a new Shaarli release once a day. Privacy policy: see the Help link. Plain HTTP - use a TLS reverse proxy before exposing it to the internet.",
   "healthcheck": [
     "CMD-SHELL",
-    "grep -q ':1F90' /proc/net/tcp6 || grep -q ':1F90' /proc/net/tcp"
+    "wget -q -O /dev/null http://127.0.0.1:8080/tpl/default/css/shaarli.min.css || exit 1"
   ],
   "entrypoint_file": "src/entrypoint.sh",
   "platform": "x86_64",
@@ -67,38 +45,45 @@
   "publisher": "Moechz",
   "compose_project": "shaarlidocker",
   "github_repo": "shaarli",
-  "upstream_version": "0.16.10",
+  "upstream_version": "0.16.11",
   "release_tag_prefix": "v",
-  "version": "0.16.10-1",
-  "help": "https://github.com/Moechz/shaarli/issues",
+  "version": "0.16.11-1",
+  "help": "https://github.com/Moechz/shaarli/blob/main/PRIVACY.md",
   "official": "https://github.com/shaarli/Shaarli",
   "license": "Zlib",
   "docker_socket": false,
   "group_add": [],
   "host_port": 8176,
   "healthcheck_start_period": "45s",
-  "wrapper_note": "the image runs Apache on port 80, which uid 1000 cannot bind, and its PHP CLI is\nnamed php84. This wrapper runs the built-in PHP web server on port 8080 and keeps\nthe data folder on the mounted volume.",
-  "wrapper_note_readme": "- **Entrypoint wrapper**: serves the app with `php84 -S 0.0.0.0:8080` (Apache binds 80, unusable as uid 1000) and keeps the data folder on the volume.",
-  "translations": {
-    "zh-cn": {
-      "descript": "Shaarli 是自建书签服务：保存带标签和描述的链接、搜索归档、按标签或日期浏览，支持从其它书签工具导入/导出，并能发布公开或私有 feed。它用应用数据目录里的平面文件存储，不需要数据库服务。",
-      "important": "需要 DockerEngine（缺失时应用中心会自动安装）。首次访问会让你设置管理员账号、时区与语言；书签与配置都保存在 DockerAppData/shaarlidocker/data。界面为纯 HTTP，暴露到公网前请配置带 TLS 的反向代理。",
-      "release_note": "1. 首个版本：基于 Docker Hub 的 Shaarli 0.16.10，以非 root 容器运行。自建书签，支持标签、搜索与 feed；数据保存在应用数据目录。"
-    },
-    "zh-hk": {
-      "descript": "Shaarli 是自建書籤服務：儲存帶標籤和描述的連結、搜尋歸檔、按標籤或日期瀏覽，支援從其它書籤工具匯入/匯出，並能發佈公開或私有 feed。它用應用資料目錄裡的平面檔案儲存，不需要資料庫服務。",
-      "important": "需要 DockerEngine（缺少時應用中心會自動安裝）。首次存取會讓你設定管理員帳號、時區與語言；書籤與設定都保存在 DockerAppData/shaarlidocker/data。介面為純 HTTP，公開到互聯網前請配置帶 TLS 的反向代理。",
-      "release_note": "1. 首個版本：基於 Docker Hub 的 Shaarli 0.16.10，以非 root 容器運行。自建書籤，支援標籤、搜尋與 feed；資料保存在應用資料目錄。"
-    }
-  },
-  "data_notes": "`/var/www/data` (mounted from `DockerAppData/shaarlidocker/data`) holds `config.json`, the datastore and the thumbnails cache.",
+  "wrapper_note": "The image runs nginx + php-fpm on port 80 as its own nginx user (uid 100). This wrapper runs PHP's built-in server as uid 1000 on port 8080 with a router for the Slim routes, and mounts Shaarli's data/cache/pagecache/tmp directories from the NAS.",
+  "wrapper_note_readme": "- **Entrypoint wrapper**: serves the app with `php84 -S 0.0.0.0:8080` plus a router (the image's nginx binds 80 and runs as uid 100) and mounts the data/cache/pagecache/tmp paths Shaarli actually uses.",
+  "data_notes": "`data/` holds `config.json.php`, `datastore.php`, history and the update-check file. `cache/` holds downloaded thumbnails, `pagecache/` rendered pages and `tmp/` compiled templates; the last three are regenerable.",
   "design_notes": [
-    "**PHP built-in server.** Apache binds port 80, unusable as uid 1000; the wrapper uses the `php84` binary with `-S` on 8080.",
-    "**No database.** Bookmarks live in a datastore file in the data folder."
+    "**URL router.** Shaarli is a Slim application; the entrypoint starts PHP's built-in server with a router that sends /install, /login, /admin and /shaare/... to index.php and blocks data/cache/template/vendor paths.",
+    "**Writable paths.** data, cache, pagecache and tmp are mounted from DockerAppData. The image ships them owned by its nginx user (uid 100), so uid 1000 cannot write to them without these mounts.",
+    "**No database.** Bookmarks live in a datastore file in the data folder.",
+    "**Update check.** The admin UI reads the latest release version from raw.githubusercontent.com at most once a day; no bookmark data is sent."
   ],
   "limitations": [
-    "- The built-in PHP server is single-threaded; fine for personal use.",
-    "- Thumbnail fetching may need outbound network access.",
-    "- The UI is plain HTTP; use a TLS reverse proxy before exposing it to the internet."
+    "- The built-in PHP server is not a full web server; it is adequate for personal use and sits behind the TOS App Center.",
+    "- Thumbnail and metadata retrieval needs outbound network access to the sites you bookmark.",
+    "- The UI is plain HTTP; use a TLS reverse proxy before exposing it to the internet.",
+    "- Shaarli is single-user by design (one admin account), not a multi-tenant service."
+  ],
+  "translations": {
+    "zh-cn": {
+      "descript": "Shaarli 是单用户的自建书签管理器：保存链接并添加标题、描述和标签，可设为公开或私有，支持搜索、按标签浏览、按日期/每日/每周归档浏览，并为公开书签提供 RSS/ATOM 订阅。保存链接时可抓取目标网页的标题、描述和缩略图（缩略图需在设置中开启），支持可选插件，支持导入/导出 Netscape 书签。数据以平面文件保存在应用数据目录，无需数据库服务。",
+      "important": "需要 DockerEngine。首次访问 http://<NAS-IP>:8176 创建管理员账号。书签、设置与缩略图保存在 /Volume1/DockerAppData/shaarlidocker/，重启与升级不会丢失。容器以 uid 1000 运行。保存链接时可能访问该网页及其图片；管理员界面每天会向 GitHub 检查一次新版本。隐私政策见帮助链接。界面为纯 HTTP，暴露到公网前请配置带 TLS 的反向代理。",
+      "release_note": "0.16.11-1：按上轮审核意见整改。上游镜像升级到 0.16.11（安全修复：拒绝 LDAP 空密码、修复随镜像分发的 npm 依赖 CVE-2026-118773）。修复容器：原先数据目录挂载到 Shaarli 并不使用的路径，缓存/页面缓存/模板目录也不可写，导致书签与设置在重启后丢失、网页界面无法完成安装；现已把四个目录挂载到 Shaarli 实际使用的路径。新增 HTTP 路由，使 /install、/login、/admin 在内置 PHP 服务器下可用。新增隐私政策与第三方接口披露，重写描述，补全 README、CHANGELOG 与许可证声明。"
+    },
+    "zh-hk": {
+      "descript": "Shaarli 是單一使用者的自建書籤管理器：儲存連結並加入標題、描述和標籤，可設為公開或私有，支援搜尋、按標籤瀏覽、按日期/每日/每週歸檔瀏覽，並為公開書籤提供 RSS/ATOM 訂閱。儲存連結時可抓取目標網頁的標題、描述和縮圖（縮圖需在設定中開啟），支援可選外掛，支援匯入/匯出 Netscape 書籤。資料以平面檔案儲存在應用資料目錄，無需資料庫服務。",
+      "important": "需要 DockerEngine。首次存取 http://<NAS-IP>:8176 建立管理員帳號。書籤、設定與縮圖保存在 /Volume1/DockerAppData/shaarlidocker/，重新啟動與升級不會遺失。容器以 uid 1000 執行。儲存連結時可能存取該網頁及其圖片；管理員介面每天會向 GitHub 檢查一次新版本。隱私政策見說明連結。介面為純 HTTP，公開到互聯網前請配置帶 TLS 的反向代理。",
+      "release_note": "0.16.11-1：依上輪審核意見整改。上游映像升級到 0.16.11（安全修復：拒絕 LDAP 空密碼、修復隨映像散佈的 npm 依賴 CVE-2026-118773）。修復容器：原先資料目錄掛載到 Shaarli 並不使用的路徑，快取/頁面快取/模板目錄也不可寫，導致書籤與設定在重新啟動後遺失、網頁介面無法完成安裝；現已把四個目錄掛載到 Shaarli 實際使用的路徑。新增 HTTP 路由，使 /install、/login、/admin 在內建 PHP 伺服器下可用。新增隱私政策與第三方介面披露，重寫描述，補全 README、CHANGELOG 與授權聲明。"
+    }
+  },
+  "platforms": [
+    "x86_64",
+    "aarch64"
   ]
 }

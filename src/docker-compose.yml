@@ -1,23 +1,31 @@
 # ===========================================================================
 # Shaarli for TerraMaster TOS 7 (Docker application)
 # ===========================================================================
-# Upstream image : shaarli/shaarli:v0.16.10 (Docker Hub, used unmodified)
+# Upstream image : shaarli/shaarli:v0.16.11 (Docker Hub, used unmodified)
 #                  -> https://github.com/shaarli/Shaarli
 #
 # Ports   : host 8176 -> container 8080. The host port is in the
 #           TOS-recommended 8000-19999 range and is not one of the reserved
 #           ports (22/80/443/445/3306/5050/5432/6379/8181/8443).
-# Volumes : all persistent data lives below
+# Volumes : all writable paths live below
 #           /Volume1/DockerAppData/shaarlidocker/. The /Volume* wildcard is
 #           deliberately NOT used: the platform does not expand it.
+#           Shaarli keeps its data in /var/www/shaarli/data (config, datastore,
+#           history, update-check file), downloaded thumbnails in
+#           /var/www/shaarli/cache, rendered pages in /var/www/shaarli/pagecache
+#           and compiled templates in /var/www/shaarli/tmp. All four must be
+#           writable by uid 1000; the image ships them owned by its nginx user.
 # TOS rules honoured: Docker Hub image with a fixed tag (never ':latest'),
 #           container_name == application id, restart: unless-stopped,
 #           non-root user, no privileged mode, no network_mode: host, no
 #           cap_add, explicit TZ, a healthcheck on the only service, and
 #           x-app-meta as the last block.
-# Wrapper : the image runs Apache on port 80, which uid 1000 cannot bind, and its PHP CLI is
-#           named php84. This wrapper runs the built-in PHP web server on port 8080 and keeps
-#           the data folder on the mounted volume.
+# Wrapper : the image runs nginx + php-fpm on port 80 as its own nginx user,
+#           which uid 1000 cannot bind or write. The wrapper checks the four
+#           writable directories and runs the built-in PHP web server on port
+#           8080 with a router that sends /install, /login, /admin and
+#           /shaare/... to index.php (Shaarli is a Slim application) while
+#           still denying data/cache/template/vendor paths.
 # Escaping: docker compose interpolates ${VAR}/$VAR in compose files, so any
 #           '$' meant for the shell is written '$$'.
 #
@@ -29,7 +37,7 @@
 
 services:
   shaarlidocker:
-    image: shaarli/shaarli:v0.16.10
+    image: shaarli/shaarli:v0.16.11
     container_name: shaarlidocker
     restart: unless-stopped
     user: "1000:1000"
@@ -42,9 +50,12 @@ services:
     environment:
       TZ: "Asia/Shanghai"
     volumes:
-      - /Volume1/DockerAppData/shaarlidocker/data:/var/www/data
+      - /Volume1/DockerAppData/shaarlidocker/data:/var/www/shaarli/data
+      - /Volume1/DockerAppData/shaarlidocker/cache:/var/www/shaarli/cache
+      - /Volume1/DockerAppData/shaarlidocker/pagecache:/var/www/shaarli/pagecache
+      - /Volume1/DockerAppData/shaarlidocker/tmp:/var/www/shaarli/tmp
     healthcheck:
-      test: ["CMD-SHELL", "grep -q ':1F90' /proc/net/tcp6 || grep -q ':1F90' /proc/net/tcp"]
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8080/tpl/default/css/shaarli.min.css || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
